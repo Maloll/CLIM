@@ -25,7 +25,7 @@ fn main() {
     execute!(stdout(), EnterAlternateScreen).unwrap();
     let _ = enable_raw_mode();
     execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
-    execute!(stdout(), cursor::Hide);
+    execute!(stdout(), cursor::Hide).unwrap();
     my_menu.show();
     my_menu.select(0);
     loop {
@@ -52,19 +52,20 @@ impl Menu {
 
     fn show(&self) {
         for i in 0..self.options.len() {
-            let line = format!("{}. {}", i, &self.options[i]);
+            let line = format!("░  {}. {}", i, &self.options[i]);
             println!("{}", line);
         }
     }
 
     fn select(&self, pos: u16) {
-        let line = format!("{}. {}", pos.to_string(), &self.options[pos as usize]);
+        let line = format!("  {}. {}", pos.to_string(), &self.options[pos as usize]);
         execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
+        execute!(stdout(), cursor::MoveTo(0, pos as u16), Print("░".red())).unwrap();
         println!("{}", line.on_white().black());
     }
 
     fn unselect(&self, pos: u16) {
-        let line = format!("{}. {}", pos.to_string(), &self.options[pos as usize]);
+        let line = format!("░  {}. {}", pos.to_string(), &self.options[pos as usize]);
         execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
         println!("{}", line.white());
     }

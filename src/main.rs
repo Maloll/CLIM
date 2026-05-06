@@ -2,58 +2,59 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
-    style::{self, Color, Print, Stylize},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    style::{Print, Stylize},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode},
 };
-use std::{
-    io::{self, Cursor, Write, stdout},
-    process::exit,
-    thread::current,
-    vec,
-};
+use std::{io::stdout, vec};
 
 use std::time::Duration;
 
 fn main() {
     let tab: Vec<String> = vec![
-        "Pomme".to_string(),
-        "Banane".to_string(),
-        "Ananas".to_string(),
-    ];
-    let mut my_menu = Menu::create(tab);
+        "Pomme", "Banane", "Ananas", "Fraise", "Orange", "Poire", "Kiwi", "Mangue", "Pêche",
+        "Cerise", "Abricot", "Raisin", "Melon",
+    ]
+    .into_iter()
+    .map(|s| s.to_string())
+    .collect();
 
-    execute!(stdout(), EnterAlternateScreen).unwrap();
-    let _ = enable_raw_mode();
-    execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
-    execute!(stdout(), cursor::Hide).unwrap();
-    my_menu.show();
-    my_menu.select(0);
-    loop {
-        my_menu.Move();
-    }
+    let mut my_list = List::create(tab);
+    my_list.launch();
 }
 
-struct Menu {
+struct List {
     options: Vec<String>,
     selected: i32,
-    x: u16,
-    y: u16,
 }
 
-impl Menu {
+impl List {
     fn create(option_tab: Vec<String>) -> Self {
         Self {
             options: option_tab,
             selected: 0,
-            x: 0,
-            y: 0,
+        }
+    }
+
+    fn launch(&mut self) {
+        execute!(stdout(), EnterAlternateScreen).unwrap();
+        let _ = enable_raw_mode();
+        execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
+        execute!(stdout(), cursor::Hide).unwrap();
+        self.show();
+        self.select(0);
+        loop {
+            if let Ok(k) = self.keyboard_detection() {
+                execute!(stdout(), LeaveAlternateScreen).unwrap();
+                println!("Item choisi : {}. {}", k, self.options[k as usize]);
+                break;
+            }
         }
     }
 
     fn show(&self) {
         for i in 0..self.options.len() {
             let line = format!("░  {}. {}", i, &self.options[i]);
-            println!("{}", line);
+            println!("{}", line.white());
         }
     }
 
@@ -70,23 +71,25 @@ impl Menu {
         println!("{}", line.white());
     }
 
-    fn Move(&mut self) {
+    fn keyboard_detection(&mut self) -> Result<i32, bool> {
         let old_selected = self.selected;
         let mut new_selected: i32 = 99;
         let k = key_pressed();
         match k {
-            -99 => exit(100),
+            -99 => execute!(stdout(), LeaveAlternateScreen).unwrap(),
             -100 => (),
+            -66 => return Ok(old_selected),
             _ => new_selected = self.selected + k as i32,
         }
 
         if new_selected < 0 || new_selected >= self.options.len() as i32 {
-            return;
+            return Err(false);
         } else if old_selected != new_selected {
             self.selected = new_selected;
             self.unselect(old_selected as u16);
             self.select(self.selected as u16);
         }
+        return Err(false);
     }
 }
 
@@ -98,6 +101,7 @@ fn key_pressed() -> i32 {
                     KeyCode::Up => -1,
                     KeyCode::Down => 1,
                     KeyCode::Esc => -99,
+                    KeyCode::Enter => -66,
                     _ => -100,
                 };
             }

@@ -51,22 +51,22 @@ impl Menu {
     }
 
     fn show(&self) {
-        for (i, opt) in self.options.iter().enumerate() {
-            let line = i.to_string() + ". " + opt;
-            println!("{}", line.on_black());
+        for i in 0..self.options.len() {
+            let line = format!("{}. {}", i, &self.options[i]);
+            println!("{}", line);
         }
     }
 
     fn select(&self, pos: u16) {
-        let line = pos.to_string() + ". " + &self.options[pos as usize];
+        let line = format!("{}. {}", pos.to_string(), &self.options[pos as usize]);
         execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
         println!("{}", line.on_white().black());
     }
 
     fn unselect(&self, pos: u16) {
-        let line = pos.to_string() + ". " + &self.options[pos as usize];
+        let line = format!("{}. {}", pos.to_string(), &self.options[pos as usize]);
         execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
-        println!("{}", line.on_black().white());
+        println!("{}", line.white());
     }
 
     fn Move(&mut self) {

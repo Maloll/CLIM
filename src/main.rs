@@ -19,7 +19,9 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    my_list.launch();
+    let selec = my_list.launch();
+
+    println!("Item choisi : {}. {}", selec, my_list.options[selec]);
 }
 
 struct List {
@@ -35,7 +37,7 @@ impl List {
         }
     }
 
-    fn launch(&mut self) {
+    fn launch(&mut self) -> usize {
         execute!(stdout(), EnterAlternateScreen).unwrap();
         let _ = enable_raw_mode();
         execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
@@ -45,8 +47,7 @@ impl List {
         loop {
             if let Ok(k) = self.keyboard_detection() {
                 execute!(stdout(), LeaveAlternateScreen).unwrap();
-                println!("Item choisi : {}. {}", k, self.options[k as usize]);
-                break;
+                return k as usize;
             }
         }
     }

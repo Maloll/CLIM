@@ -11,17 +11,28 @@ use std::time::Duration;
 
 fn main() {
     let tab: Vec<String> = vec![
-        "Pomme", "Banane", "Ananas", "Fraise", "Orange", "Poire", "Kiwi", "Mangue", "Pêche",
-        "Cerise", "Abricot", "Raisin", "Melon",
+        "Apple",
+        "Banana",
+        "Pineapple",
+        "Strawberry",
+        "Orange",
+        "Pear",
+        "Kiwi",
+        "Mango",
+        "Peach",
+        "Cherry",
+        "Apricot",
+        "Grape",
+        "Melon",
     ]
     .into_iter()
     .map(|s| s.to_string())
     .collect();
 
     let mut my_list = List::create(tab);
-    let selec = my_list.launch();
+    let choice = my_list.launch();
 
-    println!("Item choisi : {}. {}", selec, my_list.options[selec]);
+    println!("Selected Item : {}. {}", choice, my_list.options[choice]);
 }
 
 struct List {

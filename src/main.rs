@@ -32,11 +32,12 @@ fn main() {
     let mut my_list = List::create(tab);
     my_list = my_list.offset(10, 10).show();
 
-    let _ = disable_raw_mode();
-    println!(
-        "Selected Item : {}. {}",
-        my_list.choice, my_list.options[my_list.choice]
-    );
+    if my_list.choice != -1 {
+        println!(
+            "Selected Item : {}. {}",
+            my_list.choice, my_list.options[my_list.choice as usize]
+        );
+    }
 }
 
 struct List {
@@ -44,7 +45,7 @@ struct List {
     selected: i32,
     x: u16,
     y: u16,
-    choice: usize,
+    choice: i32,
 }
 
 impl List {
@@ -66,12 +67,22 @@ impl List {
         self.initial_print();
         self.select(0);
         loop {
-            if let Ok(k) = self.keyboard_detection() {
-                execute!(stdout(), LeaveAlternateScreen).unwrap();
-                self.choice = k as usize;
+            let keyboard_result = self.keyboard_detection();
+            if let Ok(k) = keyboard_result {
+                self.leave();
+                self.choice = k;
+                return self;
+            } else if keyboard_result == Err(true) {
+                self.leave();
+                self.choice = -1;
                 return self;
             }
         }
+    }
+
+    fn leave(&self) {
+        execute!(stdout(), LeaveAlternateScreen).unwrap();
+        let _ = disable_raw_mode();
     }
 
     fn offset(mut self, x_offset: u16, y_offset: u16) -> Self {
@@ -114,9 +125,9 @@ impl List {
         let mut new_selected: i32 = 99;
         let k = key_pressed();
         match k {
-            -99 => execute!(stdout(), LeaveAlternateScreen).unwrap(),
-            -100 => (),
+            -99 => return Err(true),
             -66 => return Ok(old_selected),
+            -100 => (),
             _ => new_selected = self.selected + k as i32,
         }
 

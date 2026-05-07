@@ -3,7 +3,7 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
     style::{Print, Stylize},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use std::{io::stdout, vec};
 
@@ -30,14 +30,21 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    let choice = my_list.launch();
+    my_list = my_list.offset(10, 10).show();
 
-    println!("Selected Item : {}. {}", choice, my_list.options[choice]);
+    let _ = disable_raw_mode();
+    println!(
+        "Selected Item : {}. {}",
+        my_list.choice, my_list.options[my_list.choice]
+    );
 }
 
 struct List {
     options: Vec<String>,
     selected: i32,
+    x: u16,
+    y: u16,
+    choice: usize,
 }
 
 impl List {
@@ -45,42 +52,61 @@ impl List {
         Self {
             options: option_tab,
             selected: 0,
+            x: 0,
+            y: 0,
+            choice: 0,
         }
     }
 
-    fn launch(&mut self) -> usize {
+    fn show(mut self) -> Self {
         execute!(stdout(), EnterAlternateScreen).unwrap();
         let _ = enable_raw_mode();
-        execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
+        execute!(stdout(), cursor::MoveTo(self.x, self.y)).unwrap();
         execute!(stdout(), cursor::Hide).unwrap();
-        self.show();
+        self.initial_print();
         self.select(0);
         loop {
             if let Ok(k) = self.keyboard_detection() {
                 execute!(stdout(), LeaveAlternateScreen).unwrap();
-                return k as usize;
+                self.choice = k as usize;
+                return self;
             }
         }
     }
 
-    fn show(&self) {
+    fn offset(mut self, x_offset: u16, y_offset: u16) -> Self {
+        self.x = x_offset;
+        self.y = y_offset;
+        return self;
+    }
+
+    fn initial_print(&self) {
         for i in 0..self.options.len() {
             let line = format!("░  {}. {}", i, &self.options[i]);
-            println!("{}", line.white());
+            execute!(
+                stdout(),
+                cursor::MoveTo(self.x, self.y + i as u16),
+                Print(line.white())
+            )
+            .unwrap();
         }
     }
 
     fn select(&self, pos: u16) {
+        let real_y = self.y + pos;
+
         let line = format!("  {}. {}", pos.to_string(), &self.options[pos as usize]);
-        execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
-        execute!(stdout(), cursor::MoveTo(0, pos as u16), Print("░".red())).unwrap();
-        println!("{}", line.on_white().black());
+        execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
+        execute!(stdout(), cursor::MoveTo(self.x, real_y), Print("░".red())).unwrap();
+        execute!(stdout(), Print(line.on_white().black())).unwrap();
     }
 
     fn unselect(&self, pos: u16) {
+        let real_y = self.y + pos;
+
         let line = format!("░  {}. {}", pos.to_string(), &self.options[pos as usize]);
-        execute!(stdout(), cursor::MoveTo(0, pos as u16)).unwrap();
-        println!("{}", line.white());
+        execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
+        execute!(stdout(), Print(line.white())).unwrap();
     }
 
     fn keyboard_detection(&mut self) -> Result<i32, bool> {

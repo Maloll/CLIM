@@ -2,7 +2,7 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
-    style::{Print, Stylize},
+    style::{self, Color, ContentStyle, Print, Stylize},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use std::{io::stdout, vec};
@@ -31,7 +31,13 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    my_list = my_list.offset(5, 2).numbered(false).show();
+    my_list = my_list
+        .offset(5, 2)
+        .numbered(true)
+        .sbg(Color::White)
+        .stxt(Color::Black)
+        .scroll_bar('▌', Color::Blue)
+        .show();
 
     if my_list.choice != -1 {
         println!(
@@ -49,6 +55,9 @@ struct List {
     choice: i32,
     scroll_bar_icon: char,
     numbered_list: bool,
+    selected_bg: Color,
+    selected_txt: Color,
+    selected_icon: Color,
 }
 
 impl List {
@@ -61,6 +70,9 @@ impl List {
             choice: 0,
             scroll_bar_icon: '▌',
             numbered_list: true,
+            selected_bg: Color::White,
+            selected_txt: Color::Black,
+            selected_icon: Color::Red,
         }
     }
 
@@ -70,7 +82,8 @@ impl List {
         self
     }
 
-    fn scroll_bar(mut self, icon: char) -> Self {
+    fn scroll_bar(mut self, icon: char, color: Color) -> Self {
+        self.selected_icon = color;
         self.scroll_bar_icon = icon;
         self
     }
@@ -78,6 +91,16 @@ impl List {
     fn numbered(mut self, choice: bool) -> Self {
         self.numbered_list = choice;
         self
+    }
+
+    fn sbg(mut self, color: Color) -> Self {
+        self.selected_bg = color;
+        return self;
+    }
+
+    fn stxt(mut self, color: Color) -> Self {
+        self.selected_txt = color;
+        return self;
     }
 
     fn show(mut self) -> Self {
@@ -109,7 +132,7 @@ impl List {
     fn initial_print(&self) {
         for i in 0..self.options.len() {
             let line = if self.numbered_list {
-                format!("{} {}. {}", self.scroll_bar_icon, i, &self.options[i])
+                format!("{} {:>3}. {}", self.scroll_bar_icon, i, &self.options[i])
             } else {
                 format!("{} {}", self.scroll_bar_icon, &self.options[i])
             };
@@ -127,14 +150,23 @@ impl List {
         let real_y = self.y + pos;
 
         let line = if self.numbered_list {
-            format!("{}. {}", pos, &self.options[pos as usize])
+            format!("{:>3}. {}", pos, &self.options[pos as usize])
         } else {
             format!("{}", &self.options[pos as usize])
         };
-        execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
+
+        // Printing the scroll bar icon
         let icon: String = format!("{} ", self.scroll_bar_icon);
-        execute!(stdout(), cursor::MoveTo(self.x, real_y), Print(icon.red())).unwrap();
-        execute!(stdout(), Print(line.on_white().black())).unwrap();
+        execute!(
+            stdout(),
+            cursor::MoveTo(self.x, real_y),
+            Print(icon.with(self.selected_icon))
+        )
+        .unwrap();
+
+        // Printing the styled line
+        let styled_line = line.with(self.selected_txt).on(self.selected_bg);
+        execute!(stdout(), Print(styled_line)).unwrap();
     }
 
     fn unselect(&self, pos: u16) {
@@ -142,7 +174,7 @@ impl List {
 
         let line = if self.numbered_list {
             format!(
-                "{} {}. {}",
+                "{} {:>3}. {}",
                 self.scroll_bar_icon, pos, &self.options[pos as usize]
             )
         } else {

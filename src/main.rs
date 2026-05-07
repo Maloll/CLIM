@@ -30,7 +30,7 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    my_list = my_list.offset(10, 10).show();
+    my_list = my_list.offset(5, 2).scroll_bar('|').numbered(false).show();
 
     if my_list.choice != -1 {
         println!(
@@ -46,6 +46,8 @@ struct List {
     x: u16,
     y: u16,
     choice: i32,
+    scroll_bar_icon: char,
+    numbered_list: bool,
 }
 
 impl List {
@@ -56,7 +58,25 @@ impl List {
             x: 0,
             y: 0,
             choice: 0,
+            scroll_bar_icon: '░',
+            numbered_list: true,
         }
+    }
+
+    fn offset(mut self, x_offset: u16, y_offset: u16) -> Self {
+        self.x = x_offset;
+        self.y = y_offset;
+        self
+    }
+
+    fn scroll_bar(mut self, icon: char) -> Self {
+        self.scroll_bar_icon = icon;
+        self
+    }
+
+    fn numbered(mut self, choice: bool) -> Self {
+        self.numbered_list = choice;
+        self
     }
 
     fn show(mut self) -> Self {
@@ -85,15 +105,14 @@ impl List {
         let _ = disable_raw_mode();
     }
 
-    fn offset(mut self, x_offset: u16, y_offset: u16) -> Self {
-        self.x = x_offset;
-        self.y = y_offset;
-        return self;
-    }
-
     fn initial_print(&self) {
         for i in 0..self.options.len() {
-            let line = format!("░  {}. {}", i, &self.options[i]);
+            let line = if self.numbered_list {
+                format!("{}  {}. {}", self.scroll_bar_icon, i, &self.options[i])
+            } else {
+                format!("{}  {}", self.scroll_bar_icon, &self.options[i])
+            };
+
             execute!(
                 stdout(),
                 cursor::MoveTo(self.x, self.y + i as u16),
@@ -106,16 +125,32 @@ impl List {
     fn select(&self, pos: u16) {
         let real_y = self.y + pos;
 
-        let line = format!("  {}. {}", pos.to_string(), &self.options[pos as usize]);
+        let line = if self.numbered_list {
+            format!("  {}. {}", pos, &self.options[pos as usize])
+        } else {
+            format!("  {}", &self.options[pos as usize])
+        };
         execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
-        execute!(stdout(), cursor::MoveTo(self.x, real_y), Print("░".red())).unwrap();
+        execute!(
+            stdout(),
+            cursor::MoveTo(self.x, real_y),
+            Print(self.scroll_bar_icon.red())
+        )
+        .unwrap();
         execute!(stdout(), Print(line.on_white().black())).unwrap();
     }
 
     fn unselect(&self, pos: u16) {
         let real_y = self.y + pos;
 
-        let line = format!("░  {}. {}", pos.to_string(), &self.options[pos as usize]);
+        let line = if self.numbered_list {
+            format!(
+                "{}  {}. {}",
+                self.scroll_bar_icon, pos, &self.options[pos as usize]
+            )
+        } else {
+            format!("{}  {}", self.scroll_bar_icon, &self.options[pos as usize])
+        };
         execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
         execute!(stdout(), Print(line.white())).unwrap();
     }
@@ -138,7 +173,7 @@ impl List {
             self.unselect(old_selected as u16);
             self.select(self.selected as u16);
         }
-        return Err(false);
+        Err(false)
     }
 }
 

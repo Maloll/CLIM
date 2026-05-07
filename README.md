@@ -17,6 +17,7 @@ I am currently focusing on the Rust implementation.
 - ❌ **Scrolling Support**: Implementation of "Viewports" to handle lists longer than the terminal height.
 - ❌ **Search & Filtering**: Real-time string matching to find items instantly in large datasets.
 - ❌ **Diverse Menu Layouts**: Beyond simple lists implementing grids, tree views, detailed view with horizontal navigation.
+- ❌ **Layout system**: A new way of creating menus, by adding items next to each other.
 - ❌ **Deep Customization**: Full control over the UI allowing users to tweak colors, borders, symbols, and highlighting styles to suit any terminal theme.
 - ❌ **Library Packaging**: Refactoring the code into a standalone Rust Crate.
 - ❌ **Multiple Languages**: Developing equivalent versions in **Python** and **Bash**.

@@ -9,7 +9,7 @@ use std::{io::stdout, vec};
 
 use std::time::Duration;
 
-// ‡ | # ░ + ▌
+// | ‡ | # ░ + ▌▐ ▓ ┇ ║ ┃
 fn main() {
     let tab: Vec<String> = vec![
         "Apple",
@@ -31,7 +31,7 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    my_list = my_list.offset(5, 2).scroll_bar('ඞ').numbered(true).show();
+    my_list = my_list.offset(5, 2).numbered(false).show();
 
     if my_list.choice != -1 {
         println!(
@@ -129,7 +129,7 @@ impl List {
         let line = if self.numbered_list {
             format!("{}. {}", pos, &self.options[pos as usize])
         } else {
-            format!(" {}", &self.options[pos as usize])
+            format!("{}", &self.options[pos as usize])
         };
         execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
         let icon: String = format!("{} ", self.scroll_bar_icon);

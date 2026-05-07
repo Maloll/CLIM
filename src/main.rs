@@ -9,6 +9,7 @@ use std::{io::stdout, vec};
 
 use std::time::Duration;
 
+// ‡ | # ░ + ▌
 fn main() {
     let tab: Vec<String> = vec![
         "Apple",
@@ -30,7 +31,7 @@ fn main() {
     .collect();
 
     let mut my_list = List::create(tab);
-    my_list = my_list.offset(5, 2).scroll_bar('|').numbered(false).show();
+    my_list = my_list.offset(5, 2).scroll_bar('ඞ').numbered(true).show();
 
     if my_list.choice != -1 {
         println!(
@@ -58,7 +59,7 @@ impl List {
             x: 0,
             y: 0,
             choice: 0,
-            scroll_bar_icon: '░',
+            scroll_bar_icon: '▌',
             numbered_list: true,
         }
     }
@@ -108,9 +109,9 @@ impl List {
     fn initial_print(&self) {
         for i in 0..self.options.len() {
             let line = if self.numbered_list {
-                format!("{}  {}. {}", self.scroll_bar_icon, i, &self.options[i])
+                format!("{} {}. {}", self.scroll_bar_icon, i, &self.options[i])
             } else {
-                format!("{}  {}", self.scroll_bar_icon, &self.options[i])
+                format!("{} {}", self.scroll_bar_icon, &self.options[i])
             };
 
             execute!(
@@ -126,17 +127,13 @@ impl List {
         let real_y = self.y + pos;
 
         let line = if self.numbered_list {
-            format!("  {}. {}", pos, &self.options[pos as usize])
+            format!("{}. {}", pos, &self.options[pos as usize])
         } else {
-            format!("  {}", &self.options[pos as usize])
+            format!(" {}", &self.options[pos as usize])
         };
         execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
-        execute!(
-            stdout(),
-            cursor::MoveTo(self.x, real_y),
-            Print(self.scroll_bar_icon.red())
-        )
-        .unwrap();
+        let icon: String = format!("{} ", self.scroll_bar_icon);
+        execute!(stdout(), cursor::MoveTo(self.x, real_y), Print(icon.red())).unwrap();
         execute!(stdout(), Print(line.on_white().black())).unwrap();
     }
 
@@ -145,11 +142,11 @@ impl List {
 
         let line = if self.numbered_list {
             format!(
-                "{}  {}. {}",
+                "{} {}. {}",
                 self.scroll_bar_icon, pos, &self.options[pos as usize]
             )
         } else {
-            format!("{}  {}", self.scroll_bar_icon, &self.options[pos as usize])
+            format!("{} {}", self.scroll_bar_icon, &self.options[pos as usize])
         };
         execute!(stdout(), cursor::MoveTo(self.x, real_y)).unwrap();
         execute!(stdout(), Print(line.white())).unwrap();

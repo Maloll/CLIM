@@ -2,12 +2,14 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
-    style::{self, Color, ContentStyle, Print, Stylize},
+    style::{Color, Print, Stylize},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use std::{io::stdout, vec};
-
-use std::time::Duration;
+use std::{io::Write, time::Duration};
+use std::{
+    io::{Read, stdout},
+    vec,
+};
 
 // | ‡ | # ░ + ▌▐ ▓ ┇ ║ ┃
 fn main() {
@@ -25,6 +27,17 @@ fn main() {
         "Apricot",
         "Grape",
         "Melon",
+        "Watermelon",
+        "Plum",
+        "Blueberry",
+        "Raspberry",
+        "Blackberry",
+        "Papaya",
+        "Lemon",
+        "Lime",
+        "Pomegranate",
+        "Coconut",
+        "Fig",
     ]
     .into_iter()
     .map(|s| s.to_string())
@@ -32,11 +45,11 @@ fn main() {
 
     let mut my_list = List::create(tab);
     my_list = my_list
-        .offset(5, 2)
+        .offset(20, 5)
         .numbered(true)
         .sbg(Color::White)
         .stxt(Color::Black)
-        .scroll_bar('▌', Color::Blue)
+        .scroll_bar('▌', Color::Red)
         .show();
 
     if my_list.choice != -1 {
@@ -45,6 +58,10 @@ fn main() {
             my_list.choice, my_list.options[my_list.choice as usize]
         );
     }
+
+    print!("Press Enter to Exit");
+    stdout().flush().unwrap();
+    let _ = std::io::stdin().read(&mut [0u8]);
 }
 
 struct List {
@@ -58,6 +75,8 @@ struct List {
     selected_bg: Color,
     selected_txt: Color,
     selected_icon: Color,
+    top_item: i32,
+    max_item: u16,
 }
 
 impl List {
@@ -73,6 +92,8 @@ impl List {
             selected_bg: Color::White,
             selected_txt: Color::Black,
             selected_icon: Color::Red,
+            top_item: 0,
+            max_item: 10,
         }
     }
 
@@ -131,15 +152,19 @@ impl List {
 
     fn initial_print(&self) {
         for i in 0..self.options.len() {
+            let real_i = i + self.top_item as usize;
             let line = if self.numbered_list {
-                format!("{} {:>3}. {}", self.scroll_bar_icon, i, &self.options[i])
+                format!(
+                    "{} {:>3}. {}",
+                    self.scroll_bar_icon, real_i, &self.options[real_i]
+                )
             } else {
-                format!("{} {}", self.scroll_bar_icon, &self.options[i])
+                format!("{} {}", self.scroll_bar_icon, &self.options[real_i])
             };
 
             execute!(
                 stdout(),
-                cursor::MoveTo(self.x, self.y + i as u16),
+                cursor::MoveTo(self.x, self.y + real_i as u16),
                 Print(line.white())
             )
             .unwrap();

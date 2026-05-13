@@ -76,7 +76,7 @@ struct List {
     selected_txt: Color,
     selected_icon: Color,
     top_item: i32,
-    max_item: u16,
+    max_item: i32,
 }
 
 impl List {
@@ -129,8 +129,8 @@ impl List {
         let _ = enable_raw_mode();
         execute!(stdout(), cursor::MoveTo(self.x, self.y)).unwrap();
         execute!(stdout(), cursor::Hide).unwrap();
-        self.initial_print();
-        self.select(0);
+        self.menu_print();
+        self.select(self.selected as u16);
         loop {
             let keyboard_result = self.keyboard_detection();
             if let Ok(k) = keyboard_result {
@@ -150,21 +150,28 @@ impl List {
         let _ = disable_raw_mode();
     }
 
-    fn initial_print(&self) {
-        for i in 0..self.options.len() {
-            let real_i = i + self.top_item as usize;
+    fn menu_print(&self) {
+        for i in 0..self.max_item {
+            if (i + self.top_item) as usize >= self.options.len() {
+                break;
+            }
+
+            let real_i = i + self.top_item;
             let line = if self.numbered_list {
                 format!(
                     "{} {:>3}. {}",
-                    self.scroll_bar_icon, real_i, &self.options[real_i]
+                    self.scroll_bar_icon, real_i, &self.options[real_i as usize]
                 )
             } else {
-                format!("{} {}", self.scroll_bar_icon, &self.options[real_i])
+                format!(
+                    "{} {}",
+                    self.scroll_bar_icon, &self.options[real_i as usize]
+                )
             };
 
             execute!(
                 stdout(),
-                cursor::MoveTo(self.x, self.y + real_i as u16),
+                cursor::MoveTo(self.x, self.y + i as u16),
                 Print(line.white())
             )
             .unwrap();
@@ -172,8 +179,7 @@ impl List {
     }
 
     fn select(&self, pos: u16) {
-        let real_y = self.y + pos;
-
+        let real_y = self.y + (pos as i32 - self.top_item) as u16;
         let line = if self.numbered_list {
             format!("{:>3}. {}", pos, &self.options[pos as usize])
         } else {
@@ -195,7 +201,7 @@ impl List {
     }
 
     fn unselect(&self, pos: u16) {
-        let real_y = self.y + pos;
+        let real_y = self.y + (pos as i32 - self.top_item) as u16;
 
         let line = if self.numbered_list {
             format!(
@@ -211,7 +217,7 @@ impl List {
 
     fn keyboard_detection(&mut self) -> Result<i32, bool> {
         let old_selected = self.selected;
-        let mut new_selected: i32 = 99;
+        let mut new_selected: i32 = old_selected;
         let k = key_pressed();
         match k {
             -99 => return Err(true),
@@ -223,9 +229,19 @@ impl List {
         if new_selected < 0 || new_selected >= self.options.len() as i32 {
             return Err(false);
         } else if old_selected != new_selected {
-            self.selected = new_selected;
-            self.unselect(old_selected as u16);
+            if new_selected >= self.top_item + self.max_item {
+                self.top_item += 1;
+                self.selected = new_selected;
+                self.menu_print();
+            } else if new_selected < self.top_item {
+                self.top_item -= 1;
+                self.selected = new_selected;
+                self.menu_print();
+            } else {
+                self.selected = new_selected;
+            }
             self.select(self.selected as u16);
+            self.unselect(old_selected as u16);
         }
         Err(false)
     }
